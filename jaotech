@@ -1,84 +1,146 @@
-<#
-.SYNOPSIS
-  Ativador KMS e HWID Pro - Windows e Office
-.DESCRIPTION
-  Suporta métodos: Online KMS, HWID, KMS38, Ohook (Office permanente).
-  Baseado nos conceitos do MAS (Microsoft Activation Scripts).
-.PARAMETER None
-.NOTES
-  Para uso técnico/educacional dentro do jogo.
-#>
+# KEYWIN.ps1 - Ativador profissional Windows/Office
+# Feito por João Victor com base em práticas modernas (MAS, HWID, KMS)
 
-[CmdletBinding()]
-param()
+[Console]::Title = "KEYWIN - Ativador PRO by João Victor"
 
-function Show-Text { param($t,[ConsoleColor]$c='White'); Write-Host $t -ForegroundColor $c }
+function Show-Text { param($txt, $color="White"); Write-Host $txt -ForegroundColor $color }
+function Separator { Show-Text ("="*50) Yellow }
 
-function Separator { Show-Text ('=' * 50) Yellow }
+function Pause { Write-Host ""; Read-Host "⏸ Pressione ENTER para continuar..." }
 
-function Check-Env {
-  if ($PSVersionTable.PSEdition -ne 'Core' -and -not ($PSVersionTable.LanguageMode -eq 'FullLanguage')) {
-    Show-Text "⚠️ PowerShell não está em modo completo. Abortando..." Red
-    exit
-  }
-  try { New-Item -Path "$env:TEMP\MAS_test.tmp" -ItemType File -Force | Out-Null; Remove-Item "$env:TEMP\MAS_test.tmp" }
-  catch {
-    Show-Text "❌ Sem permissão para criar arquivos temporários. Abortando..." Red; exit
-  }
-}
-
-function Install-MAS {
-  Show-Text "`n🔄 Baixando MAS (Microsoft Activation Scripts)..." Cyan
-  iex (irm 'https://get.activated.win')
-}
-
-function Ativar-Windows-Simples {
-  Show-Text "`n🔑 Ativação KMS padrão (180 dias)" Cyan
-  slmgr /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX
-  slmgr /skms kms.luoda.cn
-  slmgr /ato
-  Show-Text "✅ Ativação KMS concluída!" Green
-  Pause
-}
-
-function Menu-KeyWinPro {
-  Check-Env
-  do {
-    Clear-Host; Separator
-    Show-Text "         🔐 KEYWIN PRO (KMS / HWID / KMS38)         " Magenta
-    Separator
-    Show-Text "[1] Ativar Windows (KMS)"
-    Show-Text "[2] Ativar Office (Online KMS)"
-    Show-Text "[3] Ativar Windows (HWID - permanente)"
-    Show-Text "[4] Ativar Windows (KMS38 - longo prazo)"
-    Show-Text "[5] Ativar Office (Ohook - permanente)"
-    Show-Text "[6] Ver status do Windows"
-    Show-Text "[7] Ver status do Office"
-    Show-Text "[8] Alterar servidor KMS"
-    Show-Text "[9] Instalar chave VL manual"
-    Show-Text "[0] Sair"
-    Separator
-    $op = Read-Host "`nEscolha:"
-    switch ($op) {
-      '1' { Ativar-Windows-Simples }
-      '2' { Install-MAS }
-      '3' { Install-MAS }
-      '4' { Install-MAS }
-      '5' { Install-MAS }
-      '6' { slmgr /xpr; Pause }
-      '7' { Verificar-Status-Office; Pause }
-      '8' { $srv=Read-Host "Digite novo KMS"; slmgr /skms $srv; Show-Text "Servidor alterado para $srv" Green; Pause }
-      '9' { $k=Read-Host "Digite chave VL"; slmgr /ipk $k; Show-Text "Chave instalada!" Green; Pause }
-      '0' { break }
-      default { Show-Text "Opção inválida!" Red; Pause }
+function Check-Environment {
+    try {
+        if ($PSVersionTable.PSVersion.Major -lt 5) {
+            Show-Text "❌ PowerShell muito antigo. Requer versão 5 ou superior." Red
+            Pause; exit
+        }
+        $tempFile = "$env:TEMP\keywin_test.tmp"
+        New-Item $tempFile -ItemType File -Force | Out-Null
+        Remove-Item $tempFile -Force
+    } catch {
+        Show-Text "❌ Erro ao acessar arquivos temporários. Execute como administrador." Red
+        Pause; exit
     }
-  } while ($true)
 }
 
-function Verificar-Status-Office {
-  $paths=@('C:\Program Files\Microsoft Office\Office16','C:\Program Files (x86)\Microsoft Office\Office16')
-  foreach($p in $paths){ if(Test-Path (Join-Path $p 'ospp.vbs')){ cd $p; cscript ospp.vbs /dstatus; return } }
-  Show-Text "Office não encontrado." Red
+function Ativar-Windows {
+    try {
+        Show-Text "`n🔧 Iniciando ativação do Windows..." Cyan
+        $chave = "W269N-WFGWX-YVC9B-4J6C9-T83GX"
+        slmgr /ipk $chave
+        slmgr /skms kms.luoda.cn
+        slmgr /ato
+        Show-Text "`n✅ Windows ativado com sucesso!" Green
+    } catch {
+        Show-Text "❌ Falha ao ativar o Windows: $_" Red
+    }
+    Pause
 }
 
-Menu-KeyWinPro
+function Ativar-Office {
+    Show-Text "`n🔍 Procurando instalação do Office..." Cyan
+    $pastas = @(
+        "C:\Program Files\Microsoft Office\Office16",
+        "C:\Program Files (x86)\Microsoft Office\Office16",
+        "C:\Program Files\Microsoft Office\Office15",
+        "C:\Program Files (x86)\Microsoft Office\Office15"
+    )
+    $encontrado = $false
+    foreach ($p in $pastas) {
+        $ospp = Join-Path $p "ospp.vbs"
+        if (Test-Path $ospp) {
+            cd $p
+            Show-Text "✔ Office encontrado em: $p" Yellow
+            cscript ospp.vbs /sethst:kms.luoda.cn
+            cscript ospp.vbs /act
+            Show-Text "`n✅ Office ativado com sucesso!" Green
+            $encontrado = $true
+            break
+        }
+    }
+    if (-not $encontrado) {
+        Show-Text "❌ Office não encontrado em diretórios padrão." Red
+    }
+    Pause
+}
+
+function Status-Windows {
+    Show-Text "`n📋 Status do Windows:" Cyan
+    slmgr /xpr
+    Pause
+}
+
+function Status-Office {
+    $pastas = @(
+        "C:\Program Files\Microsoft Office\Office16",
+        "C:\Program Files (x86)\Microsoft Office\Office16"
+    )
+    foreach ($p in $pastas) {
+        if (Test-Path (Join-Path $p "ospp.vbs")) {
+            cd $p
+            Show-Text "`n📋 Status do Office em: $p" Yellow
+            cscript ospp.vbs /dstatus
+            Pause
+            return
+        }
+    }
+    Show-Text "❌ Office não localizado para exibir status." Red
+    Pause
+}
+
+function Alterar-KMS {
+    $novo = Read-Host "`n🌐 Digite o novo endereço KMS"
+    slmgr /skms $novo
+    Show-Text "✔ Novo servidor definido: $novo" Green
+    Pause
+}
+
+function Instalar-Chave {
+    $chave = Read-Host "`n🔑 Digite a chave do produto (VL)"
+    slmgr /ipk $chave
+    Show-Text "✔ Chave instalada com sucesso!" Green
+    Pause
+}
+
+function Redefinir-Ativacao {
+    Show-Text "`n♻ Redefinindo ativação do Windows (Rearm)..." Cyan
+    slmgr /rearm
+    Show-Text "✔ Estado de ativação redefinido. Reinicie o sistema!" Yellow
+    Pause
+}
+
+function Menu-KeyWin {
+    Check-Environment
+    do {
+        Clear-Host
+        Separator
+        Show-Text "      🔐 KEYWIN PRO - Ativador Completo        " Magenta
+        Separator
+        Show-Text "[1] 🪟 Ativar Windows"
+        Show-Text "[2] 🧩 Ativar Office"
+        Show-Text "[3] ✅ Ver status do Windows"
+        Show-Text "[4] 📋 Ver status do Office"
+        Show-Text "[5] 🌐 Alterar servidor KMS"
+        Show-Text "[6] 🧷 Instalar chave do produto"
+        Show-Text "[7] ♻ Redefinir ativação (Rearm)"
+        Show-Text "[0] ❌ Sair"
+        Separator
+        $op = Read-Host "`nEscolha uma opção"
+        switch ($op) {
+            "1" { Ativar-Windows }
+            "2" { Ativar-Office }
+            "3" { Status-Windows }
+            "4" { Status-Office }
+            "5" { Alterar-KMS }
+            "6" { Instalar-Chave }
+            "7" { Redefinir-Ativacao }
+            "0" { break }
+            default {
+                Show-Text "❌ Opção inválida. Tente novamente." Red
+                Pause
+            }
+        }
+    } while ($true)
+}
+
+Menu-KeyWin
