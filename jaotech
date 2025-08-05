@@ -1,0 +1,84 @@
+<#
+.SYNOPSIS
+  Ativador KMS e HWID Pro - Windows e Office
+.DESCRIPTION
+  Suporta métodos: Online KMS, HWID, KMS38, Ohook (Office permanente).
+  Baseado nos conceitos do MAS (Microsoft Activation Scripts).
+.PARAMETER None
+.NOTES
+  Para uso técnico/educacional dentro do jogo.
+#>
+
+[CmdletBinding()]
+param()
+
+function Show-Text { param($t,[ConsoleColor]$c='White'); Write-Host $t -ForegroundColor $c }
+
+function Separator { Show-Text ('=' * 50) Yellow }
+
+function Check-Env {
+  if ($PSVersionTable.PSEdition -ne 'Core' -and -not ($PSVersionTable.LanguageMode -eq 'FullLanguage')) {
+    Show-Text "⚠️ PowerShell não está em modo completo. Abortando..." Red
+    exit
+  }
+  try { New-Item -Path "$env:TEMP\MAS_test.tmp" -ItemType File -Force | Out-Null; Remove-Item "$env:TEMP\MAS_test.tmp" }
+  catch {
+    Show-Text "❌ Sem permissão para criar arquivos temporários. Abortando..." Red; exit
+  }
+}
+
+function Install-MAS {
+  Show-Text "`n🔄 Baixando MAS (Microsoft Activation Scripts)..." Cyan
+  iex (irm 'https://get.activated.win')
+}
+
+function Ativar-Windows-Simples {
+  Show-Text "`n🔑 Ativação KMS padrão (180 dias)" Cyan
+  slmgr /ipk W269N-WFGWX-YVC9B-4J6C9-T83GX
+  slmgr /skms kms.luoda.cn
+  slmgr /ato
+  Show-Text "✅ Ativação KMS concluída!" Green
+  Pause
+}
+
+function Menu-KeyWinPro {
+  Check-Env
+  do {
+    Clear-Host; Separator
+    Show-Text "         🔐 KEYWIN PRO (KMS / HWID / KMS38)         " Magenta
+    Separator
+    Show-Text "[1] Ativar Windows (KMS)"
+    Show-Text "[2] Ativar Office (Online KMS)"
+    Show-Text "[3] Ativar Windows (HWID - permanente)"
+    Show-Text "[4] Ativar Windows (KMS38 - longo prazo)"
+    Show-Text "[5] Ativar Office (Ohook - permanente)"
+    Show-Text "[6] Ver status do Windows"
+    Show-Text "[7] Ver status do Office"
+    Show-Text "[8] Alterar servidor KMS"
+    Show-Text "[9] Instalar chave VL manual"
+    Show-Text "[0] Sair"
+    Separator
+    $op = Read-Host "`nEscolha:"
+    switch ($op) {
+      '1' { Ativar-Windows-Simples }
+      '2' { Install-MAS }
+      '3' { Install-MAS }
+      '4' { Install-MAS }
+      '5' { Install-MAS }
+      '6' { slmgr /xpr; Pause }
+      '7' { Verificar-Status-Office; Pause }
+      '8' { $srv=Read-Host "Digite novo KMS"; slmgr /skms $srv; Show-Text "Servidor alterado para $srv" Green; Pause }
+      '9' { $k=Read-Host "Digite chave VL"; slmgr /ipk $k; Show-Text "Chave instalada!" Green; Pause }
+      '0' { break }
+      default { Show-Text "Opção inválida!" Red; Pause }
+    }
+  } while ($true)
+}
+
+function Verificar-Status-Office {
+  $paths=@('C:\Program Files\Microsoft Office\Office16','C:\Program Files (x86)\Microsoft Office\Office16')
+  foreach($p in $paths){ if(Test-Path (Join-Path $p 'ospp.vbs')){ cd $p; cscript ospp.vbs /dstatus; return } }
+  Show-Text "Office não encontrado." Red
+}
+
+Menu-KeyWinPro
