@@ -27,7 +27,7 @@ function Menu-Ultimate {
     Check-Environment
     do {
         Clear-Host; Separator
-        Show-Text "     🔐 KEYWIN PRO ULTIMATE - Activation Suite     " Magenta
+        Show-Text "     🔐 KEYWIN PURUS  - Activation Suite     " Magenta
         Separator
         Show-Text "[1] Ativar Windows (Online KMS)" 
         Show-Text "[2] Ativar Windows (KMS38 - até 2038)" 
